@@ -24,7 +24,8 @@ proC = pro
 n = dim(proC)[1]
 proC$svi = factor(proC$svi)
 proC$gleason = factor(proC$gleason)
-lmLcavol= lm(lcavol ~ . ,data=proC)
+lcavol = proC$lcavol
+lmLcavol= lm(lcavol ~ . ,data=proC[,-1])
 s = summary(lmLcavol)
 s
 ```

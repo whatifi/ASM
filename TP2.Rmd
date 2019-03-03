@@ -1,27 +1,43 @@
 ---
-title: "TP2 Amine Zarbi / Siham Tassouli / Wafae Hatifi"
+title: "TP2 Cancer de Prostate"
+authors: "Amine Zarbi / Siham Tassouli / Wafae Hatifi"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 # I) Analyse préliminaire des données de prostate
-#### Question 1.a):
-```{r}
+#### Question 1.a:
+
+
+```{r echo=FALSE, warning=FALSE}
 dataCancer=read.table("prostate.data",header=TRUE)
 data = dataCancer[-ncol(dataCancer)] 
 pro = as.data.frame(cbind(  data[,1],scale(data[,2:4]),data[,5],scale(data[,6]),data[,7],scale(data[,8:9] ) ))
 names(pro) = names(data)
-pro
+
 pairs(pro, labels =colnames(dataCancer), pch = 21,bg =c("turquoise"))
 ```
 
-Si on visualise le graphe des correlations par pairs entre lcavol et  les autres predicteurs, On peut remarquer que le nuage de points entre (lcavol, lpsa)  et (lcavol, lcp) se regroupe autour d'une ligne, en soulignant  un fort alignement  pour le nuage de points (lcavol, lpsa). Pour la visualisation des autres nuages de points  entre lcavol et les autres prédicteurs quantitatifs et qualitatifs, on peut pas déduire une information sur le degré de corrélation.
-#### Question 1.b):
-En utilisant la commande R <cor> qui  determine le coefficient de correlation entre deux grandeurs on obtien le tableau ci-dessous:
-```{r figurename, echo=FALSE, fig.cap="my caption", out.width = '90%'}
+Si on visualise le graphe des correlations par pairs entre lcavol et  les autres predicteurs, On peut remarquer que le nuage de points entre (\(\textit{lcavol}\), \(\textit{lpsa}\))  et (\(\textit{lcavol}\), \(\textit{lcp}\)) se regroupe autour d'une ligne, en soulignant  un fort alignement  pour le nuage de points (\(\textit{lcavol}\), \(\textit{lpsa}\)). Pour la visualisation des autres nuages de points  entre lcavol et les autres prédicteurs quantitatifs et qualitatifs, on peut pas déduire une information sur le degré de corrélation.
+
+#### Question 1.b:
+
+La visualisation par paires des corrélations permet d'avoir une idée sur la dépedance  entre (\(\textit{lcavol}\), \(\textit{lpsa}\))  et (\(\textit{lcavol}\), \(\textit{lcp}\)), vu que ça suit une relation classique: dans ce cas une fonction affine. Cependant, on peut en déduire un idée sur la dépendance entre \(\textit{lcavol}\) et les autres prédicteurs; En utilisant donc  la commande R <cor> qui  determine le coefficient de correlation entre deux grandeurs on obtient le tableau ci-dessous:
+
+```{r figurename, echo=FALSE, fig.cap=" ", out.width = '90%'}
 knitr::include_graphics("Correla9predicteurs.png")
 ```
-On peut remarque que certains prédicteurs sont corrélés entre eux:
-**)svi est corrélé à lcp ; lcavol est corrélé à 
-```{r }
+On peut remarquer que certains prédicteurs sont corrélés entre eux:
+
+\item 
+1)svi est corrélé à \(\textit{lcavol}\) ; lcp est corrélé à \(\textit{lcavol}\) ; \(\textit{lcavol}\) est coréllé à \(\textit{svi}\), ainsi \(\textit{lcp}\) a un impact sur la dépendance entre \(\textit{svi }\) et \(\textit{lcavol}\).
+
+2)Dépendence très faible entre \(\textit{lcavol}\) et \(\textit{lweight}\) et \(\textit{age}\). Ainsi qu'entre  \(\textit{lbph}\) et tous les autres préditeurs.
+
+# II) Régression linéaire
+#### a) Equation mathématique de la régression linéaire
+```{r  echo=FALSE, warning=FALSE }
 proC = pro
 n = dim(proC)[1]
 proC$svi = factor(proC$svi)
@@ -29,27 +45,26 @@ proC$gleason = factor(proC$gleason)
 lcavol = proC$lcavol
 lmLcavol= lm(lcavol ~ . ,data=proC[,-1])
 s = summary(lmLcavol)
-s
+
 ```
 
-```{r }
+```{r echo=FALSE, warning=FALSE }
 proC = pro
 n = dim(proC)[1]
 proC$svi = factor(proC$svi)
 proC$gleason = factor(proC$gleason)
 lcavol = proC$lcavol
-lmLcavol= lm(lcavol ~ proC$svi+proC$gleason+lweight+age+lbph+pgg45help ,data=proC[,-1])
+lmLcavol= lm(lcavol ~ proC$svi+proC$gleason+lweight+age+lbph+pgg45 ,data=proC[,-1])
 s = summary(lmLcavol)
 s
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-```{r}
+```{r echo=FALSE, warning=FALSE}
 #2e)
 t<-qt(1-(0.05/2), 88)
 t
 ```
-```{r}
+```{r echo=FALSE, warning=FALSE}
 plot(fitted(lmLcavol), data[,1])
 y1<-sort.int(fitted(lmLcavol))
 y2<-sort.int(data[,1])
@@ -57,16 +72,16 @@ plot(1:97,y1, col = "blue")
 lines(1:97, y2, col="red")
 
 ```
-```{r}
+```{r echo=FALSE, warning=FALSE }
 hist(lmLcavol$residuals)
 ```
 
-```{r}
+```{r echo=FALSE, warning=FALSE}
 sum(resid(lmLcavol)^2)
 ```
 
 
-```{r}
+```{r echo=FALSE, warning=FALSE}
 anova <- aov(lcavol ~ factor(svi)*factor(gleason), proC)
 model.tables(anova,"means")
 summary(anova)
@@ -80,7 +95,7 @@ Combine <- combn(proC[,2:9],2)
 Combine[,1]
 ```
 
-```{r}
+```{r echo=FALSE, warning=FALSE}
 RSSmin <- function(k){
   if( k == 0 ){
     lm1 <- lm(lcavol~1,data=proC)

@@ -1,0 +1,324 @@
+---
+title: "TP1"
+author: "Amine Zarbi / Siham Tassouli / Wafae Hatifi"
+date: "March 4, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1) Données simulées et p-valeurs
+## Question a:
+On commence par mettre le seed à 0.
+On simule 6000 variables aléatoires de dimension 201.
+Chaque variable aléatoire comporte 201 composantes aléatoires indépendantes, centrées et de variance égale à 1.
+
+On stocke le tout dans une matrice et puis dans une dataframe.
+
+```{r cars, echo=FALSE}
+set.seed(0)
+mat <- matrix(0, nrow=6000, ncol=201)
+for (i in 1:6000){
+  mat[i,] = rnorm(201,0,1)
+}
+frame <- as.data.frame(mat)
+```
+
+## Question b:
+## Modèle de régression linéaire:
+Si on note $M$ la dataframe obtenue par la simulation de ces 6000 variables aléatoires, et conformément aux notations de l'énoncé, on peut écrire $M$ sous la forme : 
+
+$M = (V_{1} \dots V_{201})$
+
+
+Où $V_{1} \dots V_{201}$ les variables colonnes de taille 6000.
+
+
+Le but de ce modèle est d'estimer la première variable $V_{1}$ en utilisant les 200 autres variables.
+
+
+On note ainsi $X$ la matrice extraite augmentée du vecteur unité, égale à $(1_{6000},V_{2}, \dots, V_{201})$ et on utilise l'équation matricielle de la régression linéaire : 
+
+
+$V_{1} = X\beta + \epsilon$ 
+
+
+où $\beta$ est le vecteur des coefficients de la régression et $\epsilon$ le vecteur des résidus centrés.
+
+## Le vrai modèle de la régréssion :
+Le fait de simuler les 201 composantes de chaque variable aléatoire à l'aide de rnorm (de façon aléatoire) insinue une indépendance entre toutes ces composantes, et par la suite une indépendance entre les variables (colonnes). On peut donc affirmer qu'il n'y pas de corrélation entre la 1ère variable $V_{1}$ et les autres 200 variables.
+
+
+Ainsi, si on utilise la formule de la régréssion linéaire, on a forcément le vecteur $\beta$ des coefficients qui est égal au vecteur null. L'équation de la régression devient alors sous la forme :
+
+$V_{1} = \epsilon$ avec $\sigma = 1$
+
+## Différence entre les deux modèles : 
+Le premier modèle naĩf, utilisé par R, ne tient pas compte de l'indépendance des 201 variables et estime dès lors les coefficients de régression, alors que le vrai modèle de la régression sait dèja qu'il ya indépendance et que les 200 autres variables n'ont aucun impact dans l'estimation de la première variable.
+
+#Question c:
+On utilise la commande "lm" de la régression linéaire en posant les bons arguments:
+
+```{r pressure, echo=FALSE}
+y <- mat[,1]
+x <- mat[, 2:201]
+model <- lm(y~x, data=frame)
+summary(model)
+```
+On calcule le nombre de coefficients du vecteur $\beta$ supposés non nuls au seuil 5%
+
+```{r, echo=FALSE}
+p_values = summary(model)$coefficients[,4]
+count_non_zero = 0
+for (i in 1:length(p_values)){
+  if(p_values[i] < 0.05){
+    count_non_zero = count_non_zero + 1
+  }
+}
+```
+5% correspondant à la probabilité de rejeter à tort l'hypothèse nulle "$\beta_{i} = 0$", ce qui est équivalent à affirmer que le coeffcient $\beta_{i}$ est non null. 
+
+On trouve qu'au seuil de 5%, le nombre de coefficients non nuls est égal à 11.
+
+On remarque alors qu'au seuil de 5%, la proportion des coefficients non nuls est égale à $\frac{11}{200}$ qui est à peu prés égale à 5%. Ce résultat est donc cohérent puisque la proportion est une bonne estimation de la probabilité.
+
+Le nombre des coefficients non nuls obtenu est sensible au seuil fixé, plus le seuil augmente, plus la probabilité d'affirmer à tort que les coefficients sont non nuls est grande.
+Or, dans ce modèle, le nombre des coefficients non nuls doit être égal à 0, ce qui pose problème !
+
+## 2) Prédicteurs corrélés et intervalles de confiance :
+## Question a)
+On simule le modèle de taille 1000 et on dessine le nuage des points $(X_{1}, X_{2})$
+```{r, echo=FALSE}
+n = 1000
+epsilon1 <- rnorm(1000,0,1)
+epsilon2 <- rnorm(1000,0,1)
+epsilon3 <- rnorm(1000,0,1)
+X1 <- epsilon1
+X2 <- 3*X1 +epsilon2
+Y <- 2 + X1 + X2 + epsilon3
+plot(X1,X2)
+```
+
+On remarque que le nuage prend la forme d'une fonction presque linéaire, ce qui cohérent avec la 2ème formule du modèle comportant un bruit centré réduit. 
+
+## Question b:
+On met le seed à 3 et on fixe $n$ à 10, on simule à nouveau le modèle 
+```{r, echo=FALSE}
+set.seed(3)
+epsilonp1 <- rnorm(10,0,1)
+epsilonp2 <- rnorm(10,0,1)
+epsilonp3 <- rnorm(10,0,1)
+Xp1 <- epsilonp1
+Xp2 <- 3*Xp1 +epsilonp2
+Yp <-  2 + Xp1 + Xp2 + epsilonp3
+Yp
+```
+
+## Modèle 1:
+On simule le premier modèle $Y$~$X_{1}$:
+```{r, echo=FALSE}
+model1 = lm(Yp~Xp1)
+summary(model1)
+fitted(model1)
+```
+## Modèle 2:
+On simule le deuxième modèle $Y$~$X_{2}$:
+```{r, echo = FALSE}
+model2 = lm(Yp~Xp2)
+summary(model2)
+fitted(model2)
+```
+
+## Commentaire : 
+On remarque que les deux modèles (pour les deux prédicteurs $X_{1}$ et $X_{2}$) estiment de façon satisfaisante le vecteur Y, ce résultat est soutenu par les données générées par le summary des deux modèles :
+
+Pour le premier modèle, le coefficient de la corrélation au carré est égal à 0.9303 et la p_valeur associée au test de Fisher est égale à 6.637e-06, ce qui permet de dire les prédicteur ont bien un effet remarquable sur l'estimation de la variable Y, et ce qui est cohérent avec le modèle défini dans l'énoncé (fonction presque affine).
+
+Le même commentaire est valable aussi pour le second prédicteur, où $R^{2}=0.9311$ et la p_valeur associée au test de Fisher est égale à 6.344e-06.
+
+La régression sur les deux prédicteurs $X_{1}$ ou $X_{2}$ donne pratiquement la même estimation, ceci est dû au fait que $X_{2}$ dépend presque linéairement de $X_{1}$ par le biais de du modèle 2.a)
+
+## Question c)
+On estime le modèle défini dans la question 2.a)
+```{r, echo=FALSE}
+model3 =  lm(Yp~Xp1 + Xp2)
+summary(model3)
+```
+On remarque que le résultat de ce modèle est moins intéressant que celui des modèles de régression sur $X_{1}$ ou $X_{2}$ seuls, les deux prédicteurs ici sont moins signifiants, ce qui est mis en évidence par la valeur de la F-statistique assez faible, et aussi par les p-valeurs du T-test pour les coefficients de régression des prédicteurs $X_{i}$.
+
+## Deux points de vue
+-Faire une régression sur $X_{1}+X_{2}$ n'est pas utile dans ce cas, puisque l'information contenue dans $X_{1}$ l'est dejà dans $X_{2}$ vu qu'ils sont liés par la relation presque affine du modèle 2.a).  
+-De plus, le fait d'augmenter le nombre des prédicteurs ne fait qu'augmenter l'écart-type et donc la qualité de l'estimation du modèle diminue (la corrélation et donc le niveau de signification des prédicteurs diminue).
+
+## Cohérence:
+Le second point de vue est soutenu par les summary des 3 modèles :
+
+-La régression de Y sur $X_{1}$ donne une p-valeur de 6.64e-06  pour l'estimation de $\beta_{1}$ contre une p-valeur de 0.15588 lors de la régréssion de Y sur $X_{1}+X_{2}$.
+
+-La régression de Y sur $X_{2}$ donne une p-valeur de 6.34e-06  pour l'estimation de $\beta_{2}$ contre une p-valeur de 0.14855 lors de la régréssion de Y sur $X_{1}+X_{2}$.
+
+-La p-valeur du test de Fisher de la régréssion de Y sur 
+$X_{1}+X_{2}$ est 2.92e-05 contre des p-valeurs de  6.637e-06  et 6.344e-06 pour les test de Fisher des régression de Y sur $X_{1}$ et $X_{2}$ respectivement, ce qui explique le fait  que la régression apporte moins d'interêt et plus d'imprécision.
+
+## Explication :
+Cette imprécision genérée par ce modèle peut être expliquée que les écart types s'additionnent et que par la suite l'estimation des coefficients se dégrade.
+
+##Question d)
+Pour dessiner les graphes de densité de $\hat{\beta_{1}}$ et $\hat{\beta_{2}}$ du modèle défini dans le modèle 2.c), on utilise la formule 
+$\hat{\beta_{i}} \hookrightarrow (\mathcal{N}(\beta_{i}, (X^{T}X)^{-1})$
+on construit tout d'abord la matrice $X$ notée matriceX et on trace à l'aide de la fonction dnorm.
+
+On représente après les quantiles d'ordre 0.025 et 0.0975 sur l'axe des abscisses.
+```{r, echo=FALSE}
+colone1 = matrix(1, nrow = 10 ,ncol = 1 )
+matriceX =matrix(nrow = 10 ,ncol = 3 )
+matriceX[,1] = colone1
+matriceX[,2] = Xp1
+matriceX[,3] = Xp2
+
+
+betha_mu = matrix(nrow = 3 , ncol = 1  )
+betha_mu[1,1] = 2
+betha_mu[2,1] = 1
+betha_mu[3,1] = 1
+matriceX_trans = t(matriceX)
+matrix_cov = matriceX_trans%*%matriceX
+matriInverse = solve(matrix_cov)
+
+#Density betha1_chapeau
+Vx <- seq(-10, 10, length=1000)
+betha_chapeau1 = dnorm(Vx, betha_mu[2,1] , matriInverse[2,2] )
+
+
+#Density betha2_chapeau
+Vxx <- seq(-5, 5, length=1000)
+betha_chapeau2 = dnorm(Vxx, betha_mu[3,1] , matriInverse[3,3] )
+#Quantiles de betha1_chapeau en 0.025 et 0.975
+quantile0.025 <- qnorm(1 - 0.025/2 , mean = betha_mu[2,1],  sd = matriInverse[2,2] )
+quantile0.975 <- qnorm(1 - 0.975 , mean = betha_mu[2,1],  sd = matriInverse[2,2] )
+
+#Quantiles de betha2_chapeau en 0.025 et 0.975
+quantile0.025a <- qnorm(1 - 0.025/2 , mean = betha_mu[3,1],  sd = matriInverse[3,3] )
+quantile0.975a <- qnorm(1 - 0.975/2 , mean = betha_mu[3,1],  sd = matriInverse[3,3] )
+
+#
+densityB1_0.025 =  dnorm(quantile0.025, mean = betha_mu[2,1], sd = matriInverse[2,2]  )
+densityB1_0.975 =  dnorm(quantile0.975, mean = betha_mu[2,1], sd = matriInverse[2,2]  )
+densityB2_0.025 =  dnorm(quantile0.025a, mean = betha_mu[3,1], sd = matriInverse[3,3]  )
+densityB2_0.975 =  dnorm(quantile0.975a, mean = betha_mu[3,1], sd = matriInverse[3,3]  )
+#Quantiles de betha1_chapeau en 0.025 et 0.975
+quantile0.025 <- qnorm(1 - 0.025/2 , mean = betha_mu[2,1],  sd = matriInverse[2,2] )
+quantile0.975 <- qnorm(1 - 0.975 , mean = betha_mu[2,1],  sd = matriInverse[2,2] )
+
+#Quantiles de betha2_chapeau en 0.025 et 0.975
+quantile0.025a <- qnorm(1 - 0.025/2 , mean = betha_mu[3,1],  sd = matriInverse[3,3] )
+quantile0.975a <- qnorm(1 - 0.975/2 , mean = betha_mu[3,1],  sd = matriInverse[3,3] )
+
+#
+densityB1_0.025 =  dnorm(quantile0.025, mean = betha_mu[2,1], sd = matriInverse[2,2]  )
+densityB1_0.975 =  dnorm(quantile0.975, mean = betha_mu[2,1], sd = matriInverse[2,2]  )
+densityB2_0.025 =  dnorm(quantile0.025a, mean = betha_mu[3,1], sd = matriInverse[3,3]  )
+densityB2_0.975 =  dnorm(quantile0.975a, mean = betha_mu[3,1], sd = matriInverse[3,3]  )
+
+
+#plot Betha1_chapeau:
+plot(Vx, betha_chapeau1, type = "l")
+polygon(Vx, betha_chapeau1, col = "magenta", border = "black")
+segments(quantile0.025, 0,  quantile0.025, densityB1_0.025 )
+segments(quantile0.975, 0,  quantile0.975, densityB1_0.975 )
+#plot Betha2_chapeau
+plot(Vxx, betha_chapeau2, type = "l")
+polygon(Vxx, betha_chapeau2, col = "purple", border = "black")
+segments(quantile0.025a, 0,  quantile0.025a, densityB2_0.025 )
+segments(quantile0.975a, 0,  quantile0.975a, densityB2_0.975 )
+
+```
+
+
+-On observe que $\hat{\beta_{1}}$ est de variance plus grande que $\hat{\beta_{2}}$, ce qui est cohérent avec le modèle défini dans l'énoncé, puisque les écarts type s'ajoutent pour X_{1} (X_{2} dépend de X_{1} avec un bruit gaussien).
+
+-D'après la représentation des quantiles, on remarque que $\hat{\beta_{1}}$ comporte plus d'observations que $\hat{\beta_{2}}$, ce qui peut être expliqué par le même argument évoqué précédemment.
+
+##Question e:
+On dessine les ellipses des probabilités.
+
+```{r, echo=FALSE}
+
+ellipses = function(m, CV, probs)
+{
+  # Compute and plot an ellipse region for bivariate Gaussians, i.e., some ellipse that 
+  # has probability probs to contain a 2D Gaussian vector with given parameters.
+  # Inputs: 
+  #   - m: means
+  #   - CV: covariance matrix
+  #   - probs: probabilities
+  # Source : https://waterprogramming.wordpress.com/2016/11/07/plotting-probability-ellipses-for-bivariate-normal-distributions/
+  
+  # Coordinates of mean
+  b1 = m[1]
+  b2 = m[2]
+  
+  eg = eigen(CV)
+  Evec = eg$vectors
+  Eval = eg$values
+  
+  theta = seq(0,2*pi,0.01) # angles used for plotting ellipses
+  
+  vec.norm = function(v) { sqrt(t(v) %*% v)}
+  # compute angle for rotation of ellipse
+  # rotation angle will be angle between x axis and first eigenvector
+  x.vec = c(1, 0) # vector along x-axis
+  cosrotation = t(x.vec) %*% Evec[,1]/(vec.norm(x.vec)*vec.norm(Evec[,1]))
+  rotation = pi/2-acos(cosrotation) # rotation angle
+  #create a rotation matrix
+  R  = matrix(c(sin(rotation), cos(rotation), -cos(rotation), sin(rotation)), 
+              nrow=2, ncol=2, byrow = TRUE)
+  
+  # Create chi squared vector
+  chisq = qchisq(probs,2) # percentiles of chi^2 dist df=2
+  
+  # size ellipses for each quantile
+  xRadius = rep(0, length(chisq))
+  yRadius = rep(0, length(chisq))
+  x = list()
+  y = list()
+  x.plot = list()
+  y.plot = list()
+  rotated_Coords = list()
+  for (i in 1:length(chisq)) {
+    # calculate the radius of the ellipse
+    xRadius[i]=(chisq[i]*Eval[1])^.5; # primary axis
+    yRadius[i]=(chisq[i]*Eval[2])^.5; # secondary axis
+    # lines for plotting ellipse
+    x[[i]] = xRadius[i]* cos(theta);
+    y[[i]] = yRadius[i] * sin(theta);
+    # rotate ellipse
+    rotated_Coords[[i]] = R %*% matrix(c(x[[i]], y[[i]]), nrow=2, byrow=TRUE)
+    # center ellipse
+    x.plot[[i]] = t(rotated_Coords[[i]][1,]) + b1
+    y.plot[[i]] = t(rotated_Coords[[i]][2,]) + b2}
+  
+  xlim = range(x.plot[[i]])
+  ylim = range(y.plot[[i]])
+  plot(b1,b2, xlab = "X1", ylab = "X2", xlim = xlim, ylim = ylim, cex=1)
+  abline(h=0)
+  abline(v=0)
+  # Plot contours
+  for (j in 1:length(chisq)) {
+    points(x.plot[[j]],y.plot[[j]], cex=0.1)}
+  
+  legend("bottomright", c('Ellipse region', paste(probs)))}
+
+bethaa <- betha_mu[-1,]
+cov <- matriInverse[-1,-1]
+probabilities <- seq(1:4)
+probabilities[1] = 0.5
+probabilities[2] = 0.9
+probabilities[3] = 0.999
+pv_fisher = 2.92e-05
+probabilities[4] = 1 - pv_fisher 
+ellipses(bethaa, cov, probabilities)
+```
+

@@ -168,8 +168,20 @@ summary(anova)
 ```
 
 
-
 # IV) Best Subset Selection:
+
+#### a) la non-optimalité de la partie 2:
+La partie 2 n'est pas optimale parce qu'elle ne prend pas en considération les différentes combinaisons possibles entre les prédicteurs.
+
+\(\textit{lm}\)(\(\textit{lcavol}\)~1,data=pro) est une regression de taille 0.
+
+\(\textit{lm}\)(\(\textit{lcavol}\)~.,data=pro[,c(1,4,9)]) est une regression linéaire de tous le prédicteurs par rapport aux variables 1,4 et 9.
+
+\(\textit{lm}\)(\(\textit{lcavol}\)~.,data=pro[,c(1,2,9)]) est une regression linéaire de tous le prédicteurs par rapport aux variables 1,2 et 9.
+
+Pour calculer RSS on utilise la formule rss = sum(lmLcavol$residuals^2).
+
+#### Toutes les regressions de taille 2: 
 
 ```{r echo=FALSE, warning=FALSE}
 #part4
@@ -180,34 +192,172 @@ Combine <- combn(proC[,2:9],2)
 Combine[,1]
 ```
 
+#### b) Fonction minimsant RSS pour chaque k:
+
+
+
 ```{r echo=FALSE, warning=FALSE}
 RSSmin <- function(k){
   if( k == 0 ){
     lm1 <- lm(lcavol~1,data=proC)
     RSS <- sum(resid(lm1)^2)
-    return(RSS,k)
+    return(list(RSSmin=RSS,prednames=""))
   }
   else{
     RSS = 1000000000000000
-    k = 0
-    for(i in 1:ncol(Combine)){
-      lm <- lm(lcavol~., )
+    Combinaisons <- combn(seq(2,9),k)
+    for(i in 1:ncol(Combinaisons)){
+      combinaison <- union(Combinaisons[,i],1)
+      lm <- lm(lcavol~., proC[,combinaison] )
       RS <- sum(resid(lm)^2)
       if(RS < RSS){
         RSS = RS
-        k = i
+        i1 = i
       }
     }
-    return(RSS,k)
+    return(list(RSSmin = RSS,prednames=(attributes(proC)$names)[Combinaisons[,i1]]))
     
   }
 }
-
-s <- as.data.frame(cbind(Combine[,2][1],Combine[,2][2]))
-s
-#lm <- lm(lcavol~., s)
-#summary(lm)
-#resultat <- RSSmin(2)
-#resultat[1]
+resultat1 <- RSSmin(1)
+resultat2 <- RSSmin(2)
+resultat3 <- RSSmin(3)
+resultat4 <- RSSmin(4)
+resultat5 <- RSSmin(5)
+resultat6 <- RSSmin(6)
+resultat7 <- RSSmin(7)
+resultat8 <- RSSmin(8)
+resultat1$prednames
+resultat2$prednames
+resultat3$prednames
+resultat4$prednames
+resultat5$prednames
+resultat6$prednames
+resultat7$prednames
+resultat8$prednames
 ```
+
+
+
+```{r echo=FALSE, warning=FALSE}
+#### RSS en fonction de k:
+Yplot <- RSSmin(0)$RSSmin
+for(i in 1:8){
+  Yplot <- cbind(Yplot, RSSmin(i)$RSSmin)
+}
+plot(seq(0,8,1), Yplot, xlab = "k", ylab = "RSS minimale", type = "l", main = "RSS minimale pour chaque k " )
+
+```
+
+
+
+### c) Ce modèle n'est pas optimal
+Si cette méthode est efficace pour prédire le modèle optimale alors on choisira toujours le modèle de taille maximale puisque RSS diminue en augmentant le nombre de prédicteurs.
+
+
+# V) Split-validation:
+
+
+#### a) Définition de split-validation:
+
+La Split-validation est une approche standard pour estimer l'erreur de prédiction en consistant à diviser le jeu de données en deux parties:Apprentissage avec n1 individus  et Validation avec n2 individus.
+
+-L’ensemble d'Apprentissage est utilisé pour s’adapter aux modèles, c’est-à-dire pour fournir des estimations des coefficients de régression.\((\hat\beta_0, \hat\beta_1, ...,\hat\beta_p )\)
+
+-Le jeu de validation est utilisé pour estimer l'erreur de prédiction.L'erreur de prédiction est donné par la formule:
+
+\(E_{pred} = \frac{ 1 }{ n_2 }\sum\limits_{(x_i,y_i)\in Validation ~ Set}\left(  y_i - \left(\widehat{\beta}_0 + \sum_{j=1}^px_{ ij }\widehat{ \beta}_j\right)\right)^2\)
+
+Nous choisissons généralement le modèle qui génère la plus petite erreur de prédiction.
+
+```{r echo=FALSE, warning=FALSE}
+##################### selection des individus d'indice multiple de 3#######################
+
+valid <- seq(1,nrow(proC),3)
+
+```
+
+#### b) L'erreur d'apprentissage:
+
+L'erreur d'apprentissage est donnée par:
+\(sum(lmSplit$residuals**2)/32\)
+
+On obtient: 0.9004703
+```{r echo=FALSE, warning=FALSE}
+lmSplit <- lm(lcavol~.,data=proC[-valid,c(1,6,9)])
+summary(lmSplit)
+```
+ 
+```{r echo=FALSE, warning=FALSE }
+Ertraining <- sum(lmSplit$residuals**2)/32
+
+```
+#### c) L'erreur de prédiction:
+
+
+Pour calculer l'erreur de prédiction on utilise la formule :
+
+\(E_{pred} = \frac{ 1 }{ n_2 }\sum\limits_{(x_i,y_i)\in Validation ~ Set}\left(  y_i - \left(\widehat{\beta}_0 + \sum_{j=1}^px_{ ij }\widehat{ \beta}_j\right)\right)^2\)
+
+
+
+```{r echo=FALSE, warning=FALSE}
+prediction <- predict(lmSplit, proC[valid,])
+```
+
+
+```{r echo=FALSE, warning=FALSE }
+#### L'erreur de prediction: ######
+Erprediction <- sum((proC[valid,1]-prediction)**2)/65
+```
+
+L'erreur de prediction est égale à 0.2907757 plus petit que l'erreur d'apprentissage $0.9004703$, Ce qui est logique car le nombre d'individus pour l'apprentissage est plus petit. $(n1 = 32, n2 = 65)$.
+
+
+#### d) Les 9 differents modèles:
+
+```{r echo=FALSE, warning=FALSE}
+Split_validation <- function(k){
+  proC$gleason = pro$gleason
+  proC$svi = pro$svi
+  if (k==0){
+    LM <- lm(lcavol ~ 1, proC[-valid,])
+    validation<-pro[valid,]
+  }  
+  else{
+    LM <- lm(lcavol ~ ., proC[-valid,union("lcavol",RSSmin(k)$prednames)])
+    validation<-pro[valid, union("lcavol",RSSmin(k)$prednames) ]
+  }
+  prediction <- predict(LM, newdata = validation)
+  Ertraining <- sum(LM$residuals**2)/32
+  Erprediction <- sum((proC[valid,1]-prediction)**2)/65
+  return(list(Ertraining = Ertraining, Erprediction =Erprediction))
+} 
+Split_validation(5)
+```
+
+
+```{r}
+Yplot1 <- Split_validation(0)$Ertraining
+Yplot2 <- Split_validation(0)$Erprediction
+for(i in 1:8){
+  Yplot1 <- cbind(Yplot1,  Split_validation(i)$Ertraining)
+  Yplot2 <- cbind(Yplot2,  Split_validation(i)$Erprediction)
+}
+Yplot3 = Yplot1+Yplot2
+plot(seq(0,8,1), Yplot1, type = "n", ylim = range(c(Yplot1, Yplot2, Yplot3)), xlab = " k", ylab = " Erreurs Appren et prédictions",main = "Valeurs de ErreurApprentissage(bleu) et ErreurPrédiction(rouge).")
+lines(seq(0,8,1), Yplot1, col = "blue")
+lines(seq(0,8,1), Yplot3, col = "pink")
+lines(seq(0,8,1), Yplot2, col = "red")
+```
+
+
+Pour l'erreur d'apprentissage le modèle optimale est celui de la taille 8, et pour l'erreur de Prédiction est celui de la taille 1.En faisant la somme des erreurs on déduit que le modèle minimisant l'erreur global est celui de la taille 8.
+
+
+#### Question e):
+Le principal problème de la split-Validation est la multitude de choix pour choisir la valeur de $n_1$ et $n_2$ pour en déduire le modèle optimale.
+
+#### Question f):
+On peut éventuellement penser à la méthode de cross-validation.
 

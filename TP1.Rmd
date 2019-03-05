@@ -61,11 +61,16 @@ Le premier modèle naĩf, utilisé par R, ne tient pas compte de l'indépendance
 #Question c:
 On utilise la commande "lm" de la régression linéaire en posant les bons arguments:
 
+Vu la longeur du summary de la régression, Veuillez trouver ci-dessous les résulats concenant le coefficient de corrélation du modèle: 
+
+Residual standard error: 1.002 on 5799 degrees of freedom
+Multiple R-squared:  0.03717,    Adjusted R-squared:  0.003964 
+F-statistic: 1.119 on 200 and 5799 DF,  p-value: 0.1231
+
 ```{r pressure, echo=FALSE}
 y <- mat[,1]
 x <- mat[, 2:201]
 model <- lm(y~x, data=frame)
-summary(model)
 ```
 On calcule le nombre de coefficients du vecteur $\beta$ supposés non nuls au seuil 5%
 
@@ -141,7 +146,8 @@ Le même commentaire est valable aussi pour le second prédicteur, où $R^{2}=0.
 La régression sur les deux prédicteurs $X_{1}$ ou $X_{2}$ donne pratiquement la même estimation, ceci est dû au fait que $X_{2}$ dépend presque linéairement de $X_{1}$ par le biais de du modèle 2.a)
 
 ## Question c)
-On estime le modèle défini dans la question 2.a)
+On estime le modèle défini dans la question 2.a):
+
 ```{r, echo=FALSE}
 model3 =  lm(Yp~Xp1 + Xp2)
 summary(model3)
@@ -321,4 +327,24 @@ pv_fisher = 2.92e-05
 probabilities[4] = 1 - pv_fisher 
 ellipses(bethaa, cov, probabilities)
 ```
+
+
+#### Commentaires:
+
+On remarque que: 
+1) La taille des ellipses est proportionnelle  positivement à la $\mathbb{P}(\hat\beta_1 \in ellipse; \hat\beta_2 \in ellipse)$.
+
+
+
+2)La dépendance entre $X_1$ et  $X_2$ influe la précision de l'estimation de $Y$, ce qui fait que pour $\mathbb{P}$ = $p-value$ , le point $(0,0)$ n'appartient pas à l'ellipse associé à cette pobabilité.
+
+# MORALITE:
+
+Dans le cas d'une estimation d'une variable par régression linéaire, faut retenir des régresseurs:
+
+-qui sont les plus corrélées avec la variable à expliquer (But de la Question 1).
+
+-qui son les moins corrélées entre elles (But de la question2).
+
+
 

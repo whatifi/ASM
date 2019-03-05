@@ -58,7 +58,6 @@ Ainsi que les valeurs de \(\textit{gleason7}\) et \(\textit{gleason8}\) et \(\te
 ```{r  echo=FALSE, warning=FALSE }
 ###########Regression de lcavol sur tous les autres predicteurs##############
 proC = pro
-n = dim(proC)[1]
 proC$svi = factor(proC$svi)
 proC$gleason = factor(proC$gleason)
 lcavol = proC$lcavol
@@ -89,14 +88,12 @@ s
 
 #### d) Impact de lcp sur le modèle de la question1:
 ```{r echo=FALSE, warning=FALSE}
-
 stdLCP = 0.118954
 betaLcp = 0.563158
 x = 86
 qtStudent = qt(1- 0.05/2, x )
 partiegauche = betaLcp - stdLCP*qtStudent
 partieDroite = betaLcp + stdLCP*qtStudent
-
 ```
 Intervalle de Confiance: #latex
 
@@ -105,26 +102,17 @@ En utilisant R On obtient:  \([0.3266853, 0.7996307]\): On remarque que 0 n'appa
 Conclusion: On obtient une \(p-value  = 8.58e-06\) pour \(\textit{lcp}\) qui est très faible, ce qui soutenu par l'intervalle de confiance étroit.
 
 #### e) Distribution de la statistique t et cohérence des variables indiquées *:
-
 ```{r echo=FALSE, warning=FALSE}
 #2e)
 t<-qt(1-(0.05)/2, 86)
-
 ```
 Sous l'hypothèse nulle: La distribution de la probabilité de t est celle de la distribution de la loi de student.
-
 Le paramètre de la loi de student est égale à $n -p - 1 = 97 -10 -1 = 86$.
-
 Avec:  $n$ = nombre d'obsevations, $p$ = nombre de variables.
-
 La valeur de t pour laquel $P = 0.05$ est égale à \({F_{st(86)} }^{-1}(1-0.05/2)\) = 1.987608 ou -1.987608
-
 La variable \(\textit{age}\) est notée $*$, Ce qui est cohérent car sa \(|t-value| = |2.205| = 2.205 > |t| = 1.987608 \).
 
 La variable \(\textit{pgg45}\) est notée $*$, Ce qui est cohérent car sa \(|t-value| = |-2.080| = 2.080 > |t| = 1.987608 \).
-
-
-
 #### f) Visualisation des lcavol estimés et résidus:
  
 ```{r echo=FALSE, warning=FALSE}
@@ -136,65 +124,49 @@ y2<-sort.int(data[,1])
 observations = 1:97
 plot(observations,y1, col = "blue" , main = "Valeurs de lcavol estimées(bleu) et Actuelles(rouge).")
 lines(observations, y2, col="red")
-
 ```
-
 L'allure de la densité des résidus converge vers une densité d'une gaussienne, voire la figure de l'histogramme des résidus.
 ```{r echo=FALSE, warning=FALSE }
-
 hist(lmLcavol$residuals, col = "brown4", border = "khaki4", freq=FALSE , main=" Histogramme des résidus")
 par(new=TRUE)
 plot(density(lmLcavol$residuals), col="brown1", main="", xlab="", ylab="", xaxt="n", yaxt="n")
-
-
 ```
-
 La valeur RSS vaut: 41.81407
-
 ```{r echo=FALSE, warning=FALSE}
 rss = sum(lmLcavol$residuals^2)
 ```
-
-
-
 # III) Effet des prédicteurs qualitatifs:
-
 On peut affirmer à l'aide de ANOVA que Les deux prédicteurs qualitatifs: \(\textit{svi}\)  et \(\textit{gleason}\) ont un effet important sur l'information de lcavol , vu que leurs p-value sont faibles :  $2.23e-09$ pour \(\textit{svi}\) et $0.00233$ pour \(\textit{gleason}\).
-
 ```{r echo=FALSE, warning=FALSE}
 anova <- aov(lcavol ~ factor(svi)*factor(gleason), proC)
 model.tables(anova,"means")
 summary(anova)
 ```
-
-
 # IV) Best Subset Selection:
 
 #### a) la non-optimalité de la partie 2:
+
 La partie 2 n'est pas optimale parce qu'elle ne prend pas en considération les différentes combinaisons possibles entre les prédicteurs.
+$lm(lcavol~1,data=pro)$ est une regression de taille 0.
+$lm(lcavol~.,data=pro[,c(1,4,9)])$ est une regression linéaire de tous le prédicteurs par rapport aux variables 1,4 et 9.
 
-\(\textit{lm}\)(\(\textit{lcavol}\)~1,data=pro) est une regression de taille 0.
+$lm(lcavol~.,data=pro[,c(1,2,9)])$ est une regression linéaire de tous le prédicteurs par rapport aux variables 1,2 et 9.
 
-\(\textit{lm}\)(\(\textit{lcavol}\)~.,data=pro[,c(1,4,9)]) est une regression linéaire de tous le prédicteurs par rapport aux variables 1,4 et 9.
-
-\(\textit{lm}\)(\(\textit{lcavol}\)~.,data=pro[,c(1,2,9)]) est une regression linéaire de tous le prédicteurs par rapport aux variables 1,2 et 9.
-
-Pour calculer RSS on utilise la formule rss = sum(lmLcavol$residuals^2).
-
-#### Toutes les regressions de taille 2: 
+Pour calculer RSS on utilise la formule \(rss = sum(lmLcavol$residuals^2)\).
 
 ```{r echo=FALSE, warning=FALSE}
+
+#Toutes les regressions de taille 2
 #part4
 lm1<-lm(lcavol~1,data=proC)
 lm2<-lm(lcavol~.,data=proC[,c(1,4,9)])
 lm3<-lm(lcavol~.,data=proC[,c(1,2,9)])
 Combine <- combn(proC[,2:9],2)
-Combine[,1]
+names(Combine) = names(proC)
+
 ```
 
 #### b) Fonction minimsant RSS pour chaque k:
-
-
 
 ```{r echo=FALSE, warning=FALSE}
 RSSmin <- function(k){
@@ -207,7 +179,7 @@ RSSmin <- function(k){
     RSS = 1000000000000000
     Combinaisons <- combn(seq(2,9),k)
     for(i in 1:ncol(Combinaisons)){
-      combinaison <- union(Combinaisons[,i],1)
+      combinaison <- union(1,Combinaisons[,i])
       lm <- lm(lcavol~., proC[,combinaison] )
       RS <- sum(resid(lm)^2)
       if(RS < RSS){
@@ -237,32 +209,30 @@ resultat7$prednames
 resultat8$prednames
 ```
 
-
-
 ```{r echo=FALSE, warning=FALSE}
+
 #### RSS en fonction de k:
 Yplot <- RSSmin(0)$RSSmin
 for(i in 1:8){
   Yplot <- cbind(Yplot, RSSmin(i)$RSSmin)
 }
-plot(seq(0,8,1), Yplot, xlab = "k", ylab = "RSS minimale", type = "l", main = "RSS minimale pour chaque k " )
+plot(seq(0,8,1), Yplot, xlab = "Taille", ylab = "RSS minimale pou chaque k", type = "l")
 
 ```
 
 
+### c) Ce modèle n'est pas optimal:
 
-### c) Ce modèle n'est pas optimal
 Si cette méthode est efficace pour prédire le modèle optimale alors on choisira toujours le modèle de taille maximale puisque RSS diminue en augmentant le nombre de prédicteurs.
 
 
 # V) Split-validation:
 
-
 #### a) Définition de split-validation:
 
 La Split-validation est une approche standard pour estimer l'erreur de prédiction en consistant à diviser le jeu de données en deux parties:Apprentissage avec n1 individus  et Validation avec n2 individus.
 
--L’ensemble d'Apprentissage est utilisé pour s’adapter aux modèles, c’est-à-dire pour fournir des estimations des coefficients de régression.\((\hat\beta_0, \hat\beta_1, ...,\hat\beta_p )\)
+-L’ensemble d'Apprentissage est utilisé pour s’adapter aux modèles, c’est-à-dire pour fournir des estimations des coefficients de régression.\((\hat\beta_0, \hat\beta_1, ...,\hat\beta_p)\)
 
 -Le jeu de validation est utilisé pour estimer l'erreur de prédiction.L'erreur de prédiction est donné par la formule:
 
@@ -271,93 +241,95 @@ La Split-validation est une approche standard pour estimer l'erreur de prédicti
 Nous choisissons généralement le modèle qui génère la plus petite erreur de prédiction.
 
 ```{r echo=FALSE, warning=FALSE}
-##################### selection des individus d'indice multiple de 3#######################
-
-valid <- seq(1,nrow(proC),3)
-
+#### selection des individues d'indice multiple de 3:
+valid <-which((1:97)%%3 == 0)
 ```
 
-#### b) L'erreur d'apprentissage:
-
-L'erreur d'apprentissage est donnée par:
-\(sum(lmSplit$residuals**2)/32\)
-
-On obtient: 0.9004703
-```{r echo=FALSE, warning=FALSE}
+#### b)
+```{r echo=FALSE, warning=FALSE }
 lmSplit <- lm(lcavol~.,data=proC[-valid,c(1,6,9)])
 summary(lmSplit)
 ```
+
+L'erreur d'apprentissage est donné par la cette commande $R$ :
  
-```{r echo=FALSE, warning=FALSE }
+```{r }
 Ertraining <- sum(lmSplit$residuals**2)/32
-
 ```
-#### c) L'erreur de prédiction:
 
+#### c) L'ereur de prédiction:
 
 Pour calculer l'erreur de prédiction on utilise la formule :
 
 \(E_{pred} = \frac{ 1 }{ n_2 }\sum\limits_{(x_i,y_i)\in Validation ~ Set}\left(  y_i - \left(\widehat{\beta}_0 + \sum_{j=1}^px_{ ij }\widehat{ \beta}_j\right)\right)^2\)
 
-
-
 ```{r echo=FALSE, warning=FALSE}
-prediction <- predict(lmSplit, proC[valid,])
-```
+#levels(proC$gleason) = levels(factor(proC[valid,7]))
+#print(levels(proC$gleason))
+LM =  lm(lcavol~.,data=pro[-valid,c(1,6,9)])
+validation<-pro[valid, c(1,6,9)]
+prediction<-predict(LM, newdata = validation )
 
+
+```
 
 ```{r echo=FALSE, warning=FALSE }
-#### L'erreur de prediction: ######
+
+#L'erreur de prediction:
 Erprediction <- sum((proC[valid,1]-prediction)**2)/65
+
 ```
 
-L'erreur de prediction est égale à 0.2907757 plus petit que l'erreur d'apprentissage $0.9004703$, Ce qui est logique car le nombre d'individus pour l'apprentissage est plus petit. $(n1 = 32, n2 = 65)$.
+L'erreur de prediction est égale à $0.47931$ plus petit que l'erreur d'apprentissage $(0.9188223)$ ce qui est logique car le nombre d'individus pour l'apprentissage est plus petit. $(n1 = 32, n2 = 65)$.
 
 
 #### d) Les 9 differents modèles:
 
 ```{r echo=FALSE, warning=FALSE}
 Split_validation <- function(k){
-  proC$gleason = pro$gleason
-  proC$svi = pro$svi
+
   if (k==0){
     LM <- lm(lcavol ~ 1, proC[-valid,])
-    validation<-pro[valid,]
+    prediction <- predict(LM, pro[valid,])
+    Ertraining <- sum(LM$residuals^2)/32
+    Erprediction <- sum((pro[valid,"lcavol"]-prediction)^2)/65
   }  
   else{
-    LM <- lm(lcavol ~ ., proC[-valid,union("lcavol",RSSmin(k)$prednames)])
-    validation<-pro[valid, union("lcavol",RSSmin(k)$prednames) ]
+    lmSplit <- lm(lcavol~.,data=proC[-valid,union("lcavol",RSSmin(k)$prednames)])
+    Ertraining <- sum(lmSplit$residuals**2)/32
+    LM =  lm(lcavol~.,data=proC[-valid,union("lcavol",RSSmin(k)$prednames)])
+    validation<-proC[valid, union("lcavol",RSSmin(k)$prednames)]
+    prediction<-predict(LM, newdata = validation )
+    Erprediction <- sum((proC[valid,1]-prediction)**2)/65
   }
-  prediction <- predict(LM, newdata = validation)
-  Ertraining <- sum(LM$residuals**2)/32
-  Erprediction <- sum((proC[valid,1]-prediction)**2)/65
   return(list(Ertraining = Ertraining, Erprediction =Erprediction))
 } 
-Split_validation(5)
 ```
 
-
-```{r}
+```{r echo=FALSE, warning=FALSE}
+# Plot
 Yplot1 <- Split_validation(0)$Ertraining
 Yplot2 <- Split_validation(0)$Erprediction
 for(i in 1:8){
+  
   Yplot1 <- cbind(Yplot1,  Split_validation(i)$Ertraining)
   Yplot2 <- cbind(Yplot2,  Split_validation(i)$Erprediction)
 }
 Yplot3 = Yplot1+Yplot2
-plot(seq(0,8,1), Yplot1, type = "n", ylim = range(c(Yplot1, Yplot2, Yplot3)), xlab = " k", ylab = " Erreurs Appren et prédictions",main = "Valeurs de ErreurApprentissage(bleu) et ErreurPrédiction(rouge).")
+plot(seq(0,8,1), Yplot1, type = "n", ylim = range(c(Yplot1, Yplot2, Yplot3)), xlab = "k", ylab = "Erreurs ",main = "Valeurs de ErreurApprentissage(bleu) et ErreurPrédiction(rouge).")
 lines(seq(0,8,1), Yplot1, col = "blue")
 lines(seq(0,8,1), Yplot3, col = "pink")
 lines(seq(0,8,1), Yplot2, col = "red")
 ```
 
-
-Pour l'erreur d'apprentissage le modèle optimale est celui de la taille 8, et pour l'erreur de Prédiction est celui de la taille 1.En faisant la somme des erreurs on déduit que le modèle minimisant l'erreur global est celui de la taille 8.
+On remarque pour l'erreur d'apprentissage le modèle optimale est celui de la taille 8, et pour l'erreur de Prédiction est celui de la taille 2 .En faisant la somme des erreurs on déduit que le modèle minimisant l'erreur global est celui de la taille 8.
 
 
 #### Question e):
-Le principal problème de la split-Validation est la multitude de choix pour choisir la valeur de $n_1$ et $n_2$ pour en déduire le modèle optimale.
+Le principal problème de la split-Validation est la multitude de choix pour choisir la valeur de n1 et n2 pour en déduire le modèle optimale. Du coup on peut tomber sur un modèle plus précis en modifiant n1 et n2.
 
 #### Question f):
+
+
 On peut éventuellement penser à la méthode de cross-validation.
 

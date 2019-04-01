@@ -1,0 +1,206 @@
+---
+title: "TP3"
+output: html_document
+---
+
+```{r}
+library("fields")
+```
+
+### Data
+```{r setup, include=FALSE}
+NAm2 = read.table("tp3.data", header=TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+names=unique(NAm2$Pop)
+npop=length(names)
+coord=unique(NAm2[,c("Pop","long","lat")]) #coordinates for each pop
+colPalette=rep(c("black","red","cyan","orange","brown","blue","pink","purple","darkgreen"),3)
+pch=rep(c(16,15,25),each=9)
+plot(coord[,c("long","lat")],pch=pch,col=colPalette,asp=1)
+# asp allows to have the correct ratio between  axis  longitude and latitude
+# Then the map is not deformed  
+legend("bottomleft",legend=names,col=colPalette,lty=-
+1,pch=pch,cex=.75,ncol=2,lwd=2)
+library(maps);map("world",add=T)
+```
+
+
+### Regression
+```{r}
+NAaux = NAm2[,-c(1:7)]
+longitude = NAaux[,1]
+latitude = NAm2[,7]
+model <- lm(longitude ~ . , data=NAaux)
+#fitted(model)
+#summary(model)
+#sink.number()
+```
+###PCA
+```{r}
+pcaNAm2 = prcomp(NAaux[,-c(1)])
+summary(pcaNAm2)
+
+```
+```{r}
+caxes=c(1,2)
+plot(pcaNAm2$x[,caxes],col="white")
+for (i in 1:npop) {
+print(names[i])
+lines(pcaNAm2$x[which(NAm2[,3]==names[i]),caxes], 
+type="p",col=colPalette[i],pch=pch[i])
+}
+legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
+```
+Inertie cumulée :  0.362 + 0.01321
+148
+```{r}
+caxes=c(5,6)
+plot(pcaNAm2$x[,caxes],col="white")
+for (i in 1:npop) {
+print(names[i])
+lines(pcaNAm2$x[which(NAm2[,3]==names[i]),caxes], 
+type="p",col=colPalette[i],pch=pch[i])
+}
+legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
+```
+### PCR :
+```{r}
+framee = as.data.frame(pcaNAm2$x[,1:250])
+lmlong = lm(longitude~., data = framee)
+lmlat = lm(latitude~., data = framee)
+```
+
+```{r}
+plot(lmlong$fitted.values,lmlat$fitted.values,col="white", asp = 0.6)
+for (i in 1:npop) {
+print(names[i])
+lines(lmlong$fitted.values[which(NAm2[,3]==names[i])],lmlat$fitted.values[which(NAm2[,3]==names[i])],type="p",col=colPalette[i],pch=pch[i])
+}
+legend("bottomleft",legend=names,col=colPalette,lty=-
+1,pch=pch,cex=.75,ncol=3,lwd=2)
+map("world",add=T)
+```
+###b
+```{r}
+x1 = cbind(longitude,latitude)
+x2 = cbind(lmlong$fitted.values, lmlat$fitted.values)
+dist<-rdist.earth(x1, x2, miles = FALSE, R = NULL)
+err <- mean(diag(dist))
+err
+```
+
+###PCR and cross-validation
+5-a) La méthode de cross validation repose sur le même principe que la méthode de split validation (qu'est le choix du modèle minimisant l'erreur de prédiction), néonmoins les résultats obtenus à l'issue de la split validation dépend du choix des ensembles de validation et de d'apprentissage. Pour palier à ce problème la méthode de cross validation consiste à faire varier ces ensembles.
+```{r}
+nb <- nrow(NAm2) #nombre d'echantillons
+labels <- cut(seq(1, nb), breaks=10, labels=FALSE)
+set <- sample(labels, nb)
+```
+
+5-b-i)
+On crée la matrice vide PredictedCoord avec 2 colonnes (longitude et latitude) et $nb$ lignes ($nb$ est le nombre des individus)
+```{r}
+j = 2
+predictedCoord <- matrix(nrow = nb , ncol = 2)
+```
+5-b-ii)
+Ici, on fixe le nombre des axes (PCA) $naxes$ à 4. \\
+On fait régresser les variables latitudes et longitude en utilisant les individus n'appartenant pas au jeu de validation n°1.
+```{r}
+naxes <- 4
+validationSet <- subset(seq(1:494),set == 1)
+lat <- NAm2[-validationSet, "lat"]
+long <- NAm2[-validationSet, "long"]
+datalat <- data.frame(cbind(lat,pcaNAm2$x[-validationSet, 1:naxes]))
+datalong <- data.frame(cbind(long,pcaNAm2$x[-validationSet, 1:naxes]))
+reglat <- lm(lat ~ ., data = datalat)
+reglong <- lm(long ~ ., data = datalong)
+
+```
+5-b-iii)
+On prédit la latitude et la longitude des individus du jeu de validation n°1 à l'aide de la régression de 5-ii. \\
+On stocke les coordonnées prédites dans predictCoord.
+```{r}
+predictionlat = predict(reglat,newdata=data.frame(pcaNAm2$x[validationSet, 1:naxes]) )
+predictionlong = predict(reglong,newdata=data.frame(pcaNAm2$x[validationSet, 1:naxes]) )
+predictedCoord_current = cbind(predictionlong, predictionlat)
+names(predictedCoord) = names(predictedCoord_current)
+predictedCoord[validationSet, ] = predictedCoord_current
+```
+c)
+On fait la même opération pour $naxes$ allant de 2 à 440. \\
+On dessine ensuite le graphe des erreurs de prédiction/apprentissage et des erreurs totales en fonction des nombres des PCA utilisés.
+```{r}
+erreurs <- vector("numeric", 439)
+erreurs_apprentissage <- vector("numeric", 439)
+
+for(j in 2:440){
+  erreur_apprentissage = 0
+  for (i in 1:10){
+    validationSet <- subset(seq(1:494),set == i)
+    lat <- NAm2[-validationSet, "lat"]
+    long <- NAm2[-validationSet, "long"]
+    datalat <- data.frame(cbind(lat,pcaNAm2$x[-validationSet, 1:j]))
+    datalong <- data.frame(cbind(long,pcaNAm2$x[-validationSet, 1:j]))
+    reglat <- lm(lat ~ ., data = datalat)
+    reglong <- lm(long ~ ., data = datalong)
+    predictionlat = predict(reglat,newdata=data.frame(pcaNAm2$x[validationSet, 1:j]) )
+    predictionlong = predict(reglong,newdata=data.frame(pcaNAm2$x[validationSet, 1:j]) )
+    predictedCoord_current = cbind(predictionlong, predictionlat)
+    predictedCoord[validationSet, ] = predictedCoord_current
+    x3 = cbind(longitude[-validationSet],latitude[-validationSet])
+    x4 = cbind(reglong$fitted.values, reglat$fitted.values)
+    dist<-rdist.earth(x3, x4, miles = FALSE, R = NULL)
+    erreur_apprentissage <-  erreur_apprentissage + mean(diag(dist))
+  }
+  x1 = cbind(longitude,latitude)
+  x2 = predictedCoord
+  dist<-rdist.earth(x1, x2, miles = FALSE, R = NULL)
+  erreur_prediction <- mean(diag(dist))
+  erreurs[j-1] = erreur_prediction
+  erreurs_apprentissage[j-1] = erreur_apprentissage/10
+}  
+```
+
+```{r}
+## Dessin du graphe des erreurs de prediction et d'apprentissage en fonction du nombre de composantes principales utilisées
+axes <- seq(2,440)
+erreurs_totales = erreurs + erreurs_apprentissage
+lends <- c("round","butt","square")
+matplot(matrix(c(axes,axes,axes),ncol=3),matrix(c(erreurs,erreurs_apprentissage, erreurs_totales),ncol=3), lend = lends, col = c("blue", "red", "green"), xlab = "Nombre de composantes principales", ylab = "Erreurs en Km", type = c('l', 'l', 'l'))
+legend("topleft", legend = c("Erreur de prediction", "Erreur d'apprentissage", "Erreur totale"), col = c("blue", "red","green"), pch = 16)
+## On choisit le nombre des PCA qui minimise l'erreur de prédiction.
+which(erreurs==min(erreurs), arr.ind = T)
+## On trouve naxes_optim = 50
+
+# erreur de prédiction pour naxes = 50
+erreurs[50]
+min(erreurs)
+# erreur d'apprentissage pour naxes = 50
+erreurs_apprentissage[50]
+```
+5-d) La commande "which(erreurs==min(erreurs), arr.ind = T)" permet de retrouver le nombre de PCA qui minimise l'erreur de prédiction. On trouve ainsi $n=50$.
+\\
+On dessine les coordonnées prédites dans la map.
+```{r}
+framee = as.data.frame(pcaNAm2$x[,1:188])
+lmlong = lm(longitude~., data = framee)
+lmlat = lm(latitude~., data = framee)
+plot(lmlong$fitted.values,lmlat$fitted.values,col="white", asp = 0.6)
+for (i in 1:npop) {
+print(names[i])
+lines(lmlong$fitted.values[which(NAm2[,3]==names[i])],lmlat$fitted.values[which(NAm2[,3]==names[i])],type="p",col=colPalette[i],pch=pch[i]
+)
+}
+legend("bottomleft",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
+map("world",add=T)
+```
+

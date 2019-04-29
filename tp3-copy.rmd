@@ -46,7 +46,7 @@ model <- lm(longitude ~ . , data=NAaux)
 ###PCA
 ```{r}
 pcaNAm2 = prcomp(NAaux[,-c(1)])
-summary(pcaNAm2)
+#summary(pcaNAm2)
 
 ```
 ```{r}
@@ -79,7 +79,7 @@ lmlat = lm(latitude~., data = framee)
 ```
 
 ```{r}
-plot(lmlong$fitted.values,lmlat$fitted.values,col="white", asp = 0.6)
+plot(lmlong$fitted.values,lmlat$fitted.values,col="white")
 for (i in 1:npop) {
 print(names[i])
 lines(lmlong$fitted.values[which(NAm2[,3]==names[i])],lmlat$fitted.values[which(NAm2[,3]==names[i])],type="p",col=colPalette[i],pch=pch[i])
@@ -98,7 +98,7 @@ err
 ```
 
 ###PCR and cross-validation
-5-a) La méthode de cross validation repose sur le même principe que la méthode de split validation (qu'est le choix du modèle minimisant l'erreur de prédiction), néonmoins les résultats obtenus à l'issue de la split validation dépend du choix des ensembles de validation et de d'apprentissage. Pour palier à ce problème la méthode de cross validation consiste à faire varier ces ensembles.
+5-a) La méthode de cross validation repose sur le même principe que la méthode se split validation, néonmoins les résultats obtenus à l'issue de la split validation dépend du choix des ensembles de validation et de dapprentissage.Pour palier à ce problème la méthose de cross validation consiste à faire varier ces ensembles.
 ```{r}
 nb <- nrow(NAm2) #nombre d'echantillons
 labels <- cut(seq(1, nb), breaks=10, labels=FALSE)
@@ -106,14 +106,11 @@ set <- sample(labels, nb)
 ```
 
 5-b-i)
-On crée la matrice vide PredictedCoord avec 2 colonnes (longitude et latitude) et $nb$ lignes ($nb$ est le nombre des individus)
 ```{r}
 j = 2
 predictedCoord <- matrix(nrow = nb , ncol = 2)
 ```
-5-b-ii)
-Ici, on fixe le nombre des axes (PCA) $naxes$ à 4. \\
-On fait régresser les variables latitudes et longitude en utilisant les individus n'appartenant pas au jeu de validation n°1.
+
 ```{r}
 naxes <- 4
 validationSet <- subset(seq(1:494),set == 1)
@@ -125,9 +122,7 @@ reglat <- lm(lat ~ ., data = datalat)
 reglong <- lm(long ~ ., data = datalong)
 
 ```
-5-b-iii)
-On prédit la latitude et la longitude des individus du jeu de validation n°1 à l'aide de la régression de 5-ii. \\
-On stocke les coordonnées prédites dans predictCoord.
+iii)
 ```{r}
 predictionlat = predict(reglat,newdata=data.frame(pcaNAm2$x[validationSet, 1:naxes]) )
 predictionlong = predict(reglong,newdata=data.frame(pcaNAm2$x[validationSet, 1:naxes]) )
@@ -135,9 +130,7 @@ predictedCoord_current = cbind(predictionlong, predictionlat)
 names(predictedCoord) = names(predictedCoord_current)
 predictedCoord[validationSet, ] = predictedCoord_current
 ```
-c)
-On fait la même opération pour $naxes$ allant de 2 à 440. \\
-On dessine ensuite le graphe des erreurs de prédiction/apprentissage et des erreurs totales en fonction des nombres des PCA utilisés.
+iv)
 ```{r}
 erreurs <- vector("numeric", 439)
 erreurs_apprentissage <- vector("numeric", 439)
@@ -175,26 +168,18 @@ for(j in 2:440){
 axes <- seq(2,440)
 erreurs_totales = erreurs + erreurs_apprentissage
 lends <- c("round","butt","square")
-matplot(matrix(c(axes,axes,axes),ncol=3),matrix(c(erreurs,erreurs_apprentissage, erreurs_totales),ncol=3), lend = lends, col = c("blue", "red", "green"), xlab = "Nombre de composantes principales", ylab = "Erreurs en Km", type = c('l', 'l', 'l'))
-legend("topleft", legend = c("Erreur de prediction", "Erreur d'apprentissage", "Erreur totale"), col = c("blue", "red","green"), pch = 16)
-## On choisit le nombre des PCA qui minimise l'erreur de prédiction.
-which(erreurs==min(erreurs), arr.ind = T)
-## On trouve naxes_optim = 50
+matplot(matrix(c(axes,axes,axes),ncol=3),matrix(c(erreurs,erreurs_apprentissage, erreurs_totales),ncol=3), lend = lends, col = c("blue", "red", "green"), xlab = "Nombre de composantes principales", ylab = "Erreurs en Km", type = c("l", "l", "l"))
+legend("topleft",legend=c("Erreur de prediction", "Erreur d'apprentissage", "Erreur totale"),col=c("blue", "red","green"), pch=1)
 
-# erreur de prédiction pour naxes = 50
-erreurs[50]
-min(erreurs)
-# erreur d'apprentissage pour naxes = 50
-erreurs_apprentissage[50]
+which(erreurs_totales==min(erreurs_totales), arr.ind = T)
+which(erreurs_apprentissage==min(erreurs_apprentissage), arr.ind = T)
 ```
-5-d) La commande "which(erreurs==min(erreurs), arr.ind = T)" permet de retrouver le nombre de PCA qui minimise l'erreur de prédiction. On trouve ainsi $n=50$.
-\\
-On dessine les coordonnées prédites dans la map.
+
 ```{r}
 framee = as.data.frame(pcaNAm2$x[,1:188])
 lmlong = lm(longitude~., data = framee)
 lmlat = lm(latitude~., data = framee)
-plot(lmlong$fitted.values,lmlat$fitted.values,col="white", asp = 0.6)
+plot(lmlong$fitted.values,lmlat$fitted.values,col="white")
 for (i in 1:npop) {
 print(names[i])
 lines(lmlong$fitted.values[which(NAm2[,3]==names[i])],lmlat$fitted.values[which(NAm2[,3]==names[i])],type="p",col=colPalette[i],pch=pch[i]

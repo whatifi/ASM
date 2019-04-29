@@ -1,0 +1,56 @@
+---
+title: "TP3"
+output: html_document
+---
+# I)
+```{r}
+NAm2 = read.table("NAm2.txt", header=TRUE)
+
+```
+
+```{r}
+cont<-function(x)
+     {
+if (x %in% c("Canada"))
+cont<-"NorthAmerica"
+else if (x %in% c("Guatemala","Mexico","Panama","CostaRica"))
+cont<-"CentralAmerica"
+else
+cont<-"SouthAmerica"
+return (factor(cont))
+     }
+contID <- sapply(as.character(NAm2[,4]),FUN=cont)
+```
+
+# II)
+
+a)
+
+L'équation du modèle de la régression multinomiale est définis ci-dessous:
+
+$$ \forall i \in \{0, 1, 2\} \ \ \log(\frac{p_i}{p_0}) = \beta_{i, 0} + \sum_k \beta_{i, k} x^{(k)} $$
+
+```{r}
+library("nnet")
+
+NAcont<-cbind(contID=contID,NAm2[,-(1:8)])
+NAcont[,1]<-factor(NAcont[,1])
+multinom(contID ~ .,data=NAm2)
+
+```
+
+En utilisant une régression multibinomial, le nombre de données est très grand, ce qui empêche la regression, donc faut penser à réduire le nombre d'individus ( Same problem du Tp3)
+
+
+```{r}
+multinom(contID ~ .,data=NAcont, MaxNWts=18000, maxit=200)
+
+```
+
+
+Question Bonus: JUSTIFICATION MATHEMATQIUE
+```{r}
+pcaNAm2 = prcomp(NAcont[,-c(1)])
+summary(pcaNAm2)
+```
+

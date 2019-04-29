@@ -20,6 +20,7 @@ cont<-"SouthAmerica"
 return (factor(cont))
      }
 contID <- sapply(as.character(NAm2[,4]),FUN=cont)
+contID
 ```
 
 # II)
@@ -28,14 +29,14 @@ a)
 
 L'équation du modèle de la régression multinomiale est définis ci-dessous:
 
-$$ \forall i \in \{0, 1, 2\} \ \ \log(\frac{p_i}{p_0}) = \beta_{i, 0} + \sum_k \beta_{i, k} x^{(k)} $$
+$$ \forall i \in \{1, 2\} \ \ \log(\frac{p_i}{p_0}) = \beta_{i, 0} + \sum_k \beta_{i, k} x^{(k)} $$
 
 ```{r}
 library("nnet")
 
 NAcont<-cbind(contID=contID,NAm2[,-(1:8)])
 NAcont[,1]<-factor(NAcont[,1])
-multinom(contID ~ .,data=NAm2)
+multinom(contID ~ .,data=NAcont)
 
 ```
 
@@ -53,4 +54,25 @@ Question Bonus: JUSTIFICATION MATHEMATQIUE
 pcaNAm2 = prcomp(NAcont[,-c(1)])
 summary(pcaNAm2)
 ```
+
+
+
+
+
+
+
+
+
+
+#IV)Naive bayes
+a) rien de spécial dans les observations.
+```{r}
+library(e1071)
+for(i in 2:5710){
+NAcont[,i] <- as.factor(NAcont[,i])
+}
+model <- naiveBayes(contID ~ ., data = NAcont)
+model
+```
+
 
